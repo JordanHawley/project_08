@@ -125,6 +125,7 @@ function fetchPostComments(postId) {
 }
 
 function setCommentsOnPost(post) {
+  
   // post.comments might be undefined, or an []
   // if undefined, fetch them then set the result
   // if defined, return a rejected promise
