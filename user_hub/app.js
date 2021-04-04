@@ -96,15 +96,17 @@ function fetchData(url) {
     });
 }
 
-fetchUserAlbumList(1).then(function (albumList) {
-  console.log(albumList);
-});
+// fetchUserAlbumList(1).then(function (albumList) {
+//   console.log(albumList);
+// });
 
 // fetchUserAlbumList(1).then(renderAlbumList);
 
 $("#user-list").on("click", ".user-card .load-posts", function () {
   let userInfo = $(this).closest(".user-card").data("user");
-  console.log(userInfo);
+  fetchUserPosts(userInfo.id).then(function (postList) {
+    renderPostList(postList);
+  });
   //render posts for this user
 });
 
@@ -125,10 +127,87 @@ function fetchPostComments(postId) {
 }
 
 function setCommentsOnPost(post) {
-  
-  // post.comments might be undefined, or an []
-  // if undefined, fetch them then set the result
-  // if defined, return a rejected promise
+  // if we already have comments, don't fetch them again
+  if (post.comments) {
+    return Promise.reject(null);
+  }
+
+  // fetch, upgrade the post object, then return it
+  return fetchPostComments(post.id).then(function (comments) {
+    post.comments = comments;
+    return post;
+  });
 }
+
+function renderPost(post) {
+  return $(`<div class="post-card">
+  <header>
+    <h3>${post.title}</h3>
+    <h3>--- ${post.user.username}</h3>
+  </header>
+  <p>${post.body}</p>
+  <footer>
+    <div class="comment-list"></div>
+    <a href="#" class="toggle-comments">(<span class="verb">show</span> comments)</a>
+  </footer>
+</div>`).data('post', post)
+}
+
+function renderPostList(postList) {
+  $("#app section.active").removeClass("active");
+  $("#post-list").addClass("active");
+  postList.forEach(function (post) {
+    $("#post-list").append(renderPost(post));
+  });
+}
+
+function toggleComments(postCardElement) {
+  const footerElement = postCardElement.find("footer");
+
+  if (footerElement.hasClass("comments-open")) {
+    footerElement.removeClass("comments-open");
+    footerElement.find(".verb").text("show");
+  } else {
+    footerElement.addClass("comments-open");
+    footerElement.find(".verb").text("hide");
+  }
+}
+
+$("#post-list").on("click", ".post-card .toggle-comments", function () {
+  const postCardElement = $(this).closest(".post-card");
+  const post = postCardElement.data("post");
+  const commentListElement = postCardElement.find('.comment-list')
+
+  // console.log(postCardElement)
+
+  setCommentsOnPost(post)
+    .then(function (post) {
+      commentListElement.empty();
+      post.comments.forEach(function (comment) {
+        commentListElement.append(
+          $(`<h3>${comment.body} ${comment.email}</h3>`)
+        );
+      });
+      toggleComments(postCardElement);
+      // return renderPostList(post);
+    })
+    .catch(function () {
+      toggleComments(postCardElement);
+    });
+});
+
+// setCommentsOnPost(somePost)
+//   .then(function (post) {
+//     // render & show the comments
+//     return renderPostList(post)
+//   })
+//   .catch(function (error) {
+//     // just show or hide the already rendered comments
+//     toggleComments()
+//   });
+
+// fetchUserPosts(1).then(console.log); // why does this work?  Wait, what?
+
+// fetchPostComments(1).then(console.log); // again, I'm freaking out here! What gives!?
 
 bootstrap();
